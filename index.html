@@ -6,15 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/css/bootstrap.min.css"
         integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
-
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
 </head>
 
-<body ng-app="bugs" ng-controller="bugController">
-
-    <div class="mx-auto" style="width: 400px;">
-        <h2>Bug List</h2>
-        <form ng-submit="bugAdd()">
+<body class="container-fluid" ng-app="bugs" ng-controller="bugController">
+    <ul class="nav nav-tabs">
+        <li class="nav-item">
+            <a class="nav-link" ng-click="showBugsFunction()">Dashboard</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" ng-click="showNewBugFunction()">New Bug</a>
+        </li>
+    </ul>
+    <div ng-show="showNewBug" class="mx-auto" style="width: 400px;">
+        <form ng-submit="addBug()">
             <label for="bugTitle">Title</label><br>
             <input type="text" id="bugTitle" ng-model="bugTitle" size="50" placeholder="Title"><br>
             <label for="bugDescription">Description</label><br>
@@ -31,57 +36,124 @@
             </select><br>
             <input type="submit" value="Add New">
         </form>
-
+    </div>
+    <div ng-show="showUpdateBug" class="mx-auto" style="width: 400px;">
+        <form ng-submit="updateBug()">
+            <label for="bugTitle">Title</label><br>
+            <input type="text" id="bugTitle" ng-init="bugTitle" ng-model="bugTitle" size="50" placeholder="Title"><br>
+            <label for="bugDescription">Description</label><br>
+            <input type="text" id="bugDescription" ng-init="bugDescription" ng-model="bugDescription" size="50"
+                placeholder="Description"><br>
+            <label for="bugPriority">Priority</label><br>
+            <select class="form-select" ng-init="bugPriority" id="bugPriority" aria-label="Default select example"
+                ng-model="bugPriority" ng-options="priority for priority in priorityOptions">
+            </select><br>
+            <label for="bugStatus">Status</label><br>
+            <select class="form-select" ng-init="bugStatus" id="bugStatus" aria-label="Default select example"
+                ng-model="bugStatus" ng-options="status for status in statusOptions">
+            </select><br>
+            <input type="submit" value="Update">
+        </form>
     </div>
     <br>
     <br>
-    <!-- <div class="card" style="width: 18rem;" ng-repeat="bug in bugList">
-        <ul class="list-group list-group-flush">
-            <li><input type="checkbox" ng-model="bug.done"> <span ng-bind="bug.title"></li>
-        </ul>
-    </div> -->
+    <div ng-show="showBugs">
+        <input type="text" id="search" ng-model="search" size="50" placeholder="Search Title"><br><br>
 
+        <table class="table">
+            <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Description</th>
+                <th>Priority</th>
+                <th>Status</th>
+            </tr>
+            <tr ng-repeat="bug in bugList | filter: {'title' : search}" ng-click="setBug(bug.id)">
+                <td><input type="checkbox" ng-model="bug.done"></td>
+                <td>{{bug.title}}</td>
+                <td>{{bug.description}}</td>
+                <td>{{bug.priority}}</td>
+                <td>{{bug.status}}</td>
+            </tr>
+        </table>
 
+        <p><button ng-click="removeMarked()">Remove marked</button></p>
+    </div>
+    <div class="card" ng-show="showDetails">
+        <div class="card-body">
+            <h2 class="card-title">Bug Details</h2>
+            <div class="card-text" ng-init="currentBug = currentBug">
+                <span>
+                    <h4>ID</h4>{{currentBug.id}}
+                </span>
+                <h4>Title</h4>{{currentBug.title}}
+                <h4>Description</h4>{{currentBug.description}}
+                <h4>priority</h4>{{currentBug.priority}}
+                <h4>status</h4>{{currentBug.status}}<br>
+                <button type="button" class="btn btn-danger" ng-init="currentBug = currentBug"
+                    ng-click="deleteBug(currentBug.id)">Delete</button>
+                <button type="button" class="btn btn-warning" ng-init="currentBug = currentBug"
+                    ng-click="showUpdateBugFunction()">Update</button>
+                <button type="button" class="btn btn-primary" ng-init="currentBug = currentBug"
+                    ng-click="showBugsFunction()">Back</button>
 
-    <input type="text" id="search" ng-model="search" size="50" placeholder="Search Title"><br><br>
-
-    <table class="table">
-        <tr>
-            <th>#</th>
-            <th>Title</th>
-            <th>Description</th>
-            <th>Priority</th>
-            <th>Status</th>
-        </tr>
-        <tr ng-repeat="bug in bugList | filter: {'title' : search}">
-            <td><input type="checkbox" ng-model="bug.done"></td>
-            <td>{{bug.title}}</td>
-            <td>{{bug.description}}</td>
-            <td>{{bug.priority}}</td>
-            <td>{{bug.status}}</td>
-        </tr>
-    </table>
-
-    <p><button ng-click="removeMarked()">Remove marked</button></p>
-
+            </div>
+        </div>
+    </div>
     <script>
         var app = angular.module('bugs', []);
-        app.controller('bugController', function ($scope) {
+        app.controller('bugController', function ($scope, $http) {
             $scope.bugList = [{ title: 'Clean House', description: 'clean using thodapam', done: false, priority: "High", status: "pending" }];
-
-            $scope.bugAdd = function () {
-                $scope.bugList.push({
-                    title: $scope.bugTitle,
-                    description: $scope.bugDescription,
-                    priority: $scope.bugPriority,
-                    status: $scope.bugStatus,
-                    done: false
+            $http.get("http://localhost:8080/bug").then(function (response) {
+                $scope.bugList = response.data;
+                console.log($scope.bugList)
+            });
+            $scope.addBug = function () {
+                var bugAddRequest = {
+                    method: 'POST',
+                    url: "http://localhost:8080/bug",
+                    headers: {
+                        'Content-Type': "application/json"
+                    },
+                    data: {
+                        id: Math.round(Date.now() / 1000),
+                        title: $scope.bugTitle,
+                        description: $scope.bugDescription,
+                        priority: $scope.bugPriority,
+                        status: $scope.bugStatus,
+                        done: false
+                    }
+                }
+                $http(bugAddRequest).then(function () {
+                    $http.get("http://localhost:8080/bug").then(function (response) {
+                        $scope.bugList = response.data;
+                        console.log($scope.bugList)
+                    });
+                    $scope.bugTitle = "";
+                    $scope.bugDescription = "";
+                    $scope.bugStatus = "Todo";
+                    $scope.bugPriority = "Medium";
                 });
-                $scope.bugTitle = "";
-                $scope.bugDescription = "";
-                $scope.bugStatus = "";
-                $scope.bugPriority = "";
+                $scope.showBugsFunction();
             };
+
+            $scope.deleteBug = function (id) {
+                console.log("http://localhost:8080/bug/" + id);
+                let bugDeleteRequest = {
+                    method: 'DELETE',
+                    url: "http://localhost:8080/bug/" + id,
+                    headers: {
+                        'Content-Type': "application/json"
+                    }
+                };
+                $http(bugDeleteRequest).then(() => {
+                    $http.get("http://localhost:8080/bug").then(function (response) {
+                        $scope.bugList = response.data;
+                        $scope.showBugsFunction();
+                    });
+                });
+
+            }
 
             $scope.removeMarked = function () {
                 var oldList = $scope.bugList;
@@ -92,6 +164,70 @@
             };
             $scope.statusOptions = ["Todo", "Pending", "Completed"];
             $scope.priorityOptions = ["Medium", "Low", "High"];
+            $scope.bugTitle = "";
+            $scope.bugDescription = "";
+            $scope.bugStatus = "Todo";
+            $scope.bugPriority = "Medium";
+            $scope.setBug = function (id) {
+                $scope.bugList.forEach(bug => {
+                    if (bug.id === id) {
+                        $scope.currentBug = { ...bug };
+                    }
+                });
+                $scope.showDetailsFunction();
+            }
+            $scope.updateBug = function () {
+                $scope.bugList.forEach(bug => {
+                    if (bug.id === $scope.currentBug.id) {
+                        bug.title = $scope.bugTitle;
+                        bug.description = $scope.bugDescription;
+                        bug.priority = $scope.bugPriority;
+                        bug.status = $scope.bugStatus;
+                    }
+                });
+                $scope.bugTitle = "";
+                $scope.bugDescription = "";
+                $scope.bugStatus = "Todo";
+                $scope.bugPriority = "Medium";
+
+                $scope.showBugsFunction();
+            }
+
+            $scope.showDetails = false;
+            $scope.showNewBug = false;
+            $scope.shoeUpdateBug = false;
+            $scope.showBugs = true;
+
+            $scope.showUpdateBugFunction = function () {
+                $scope.bugTitle = $scope.currentBug.title;
+                $scope.bugDescription = $scope.currentBug.description;
+                $scope.bugStatus = $scope.currentBug.status;
+                $scope.bugPriority = $scope.currentBug.priority;
+
+                $scope.showDetails = false;
+                $scope.showNewBug = false;
+                $scope.showBugs = false;
+                $scope.showUpdateBug = true;
+            }
+            $scope.showBugsFunction = () => {
+                $scope.showDetails = false;
+                $scope.showNewBug = false;
+                $scope.showBugs = true;
+                $scope.showUpdateBug = false;
+            };
+            $scope.showNewBugFunction = () => {
+                $scope.showDetails = false;
+                $scope.showNewBug = true;
+                $scope.showBugs = false;
+                $scope.showUpdateBug = false;
+            };
+            $scope.showDetailsFunction = () => {
+                $scope.showDetails = true;
+                $scope.showNewBug = false;
+                $scope.showBugs = false;
+                $scope.showUpdateBug = false;
+            };
+            $scope.currentBug = { title: 'Clean House', description: 'clean using thodapam', done: false, priority: "High", status: "pending" };
         });
     </script>
     <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
