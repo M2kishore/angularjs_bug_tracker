@@ -1,14 +1,14 @@
 var express = require('express');
 var app = express();
 app.use(express.static('public'));
-const cors=require('cors');
+const cors = require('cors');
 var bodyParser = require('body-parser')
 app.use(bodyParser.json())
 app.use(cors());
 
 let bugs = [
-   { id: 1, title: 'Clean House', description: 'clean using thodapam', done: false, priority: "High", status: "Pending" },
-   { id: 2, title: 'Cannot Reach page', description: '404 error not able to find', done: false, priority: "Low", status: "Todo" }
+   { id: '1', title: 'Clean House', description: 'clean using thodapam', done: false, priority: "High", status: "Pending" },
+   { id: '2', title: 'Cannot Reach page', description: '404 error not able to find', done: false, priority: "Low", status: "Todo" }
 ];
 app.get('/bug', function (req, res) {
    console.log("get all bugs");
@@ -17,7 +17,7 @@ app.get('/bug', function (req, res) {
 
 app.get('/bug/:id/', function (req, res) {
    let bugId = req.params.id;
-   console.log("bug: "+bugId);
+   console.log("bug: " + bugId);
    let bug = bugs.filter(bug => bug.id === parseInt(bugId));
    res.send(bug[0]);
 });
@@ -36,13 +36,28 @@ app.post('/bug', function (req, res) {
 });
 app.delete('/bug/:id', (req, res) => {
    let bugId = req.params.id;
-   let filteredBugs = bugs.filter((bug=>{
+   let filteredBugs = bugs.filter((bug => {
       return bug.id != bugId;
    }));
    bugs = [...filteredBugs]
    console.log(bugs);
    res.send();
- });
+});
+
+app.put('/bug/:id', (req, res) => {
+   let bugId = req.params.id;
+   console.log("put"+req.body);
+   bugs.filter((bug) => {
+      console.log(bug.id+" "+bugId);
+      if (bug.id == bugId) {
+         bug.title = req.body.title;
+         bug.description = req.body.description;
+         bug.priority = req.body.priority;
+         bug.status = req.body.status;
+      }
+   });
+   res.send();
+})
 
 var server = app.listen(8080, function () {
    var host = server.address().address

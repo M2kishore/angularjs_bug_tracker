@@ -34,7 +34,7 @@
                 aria-label="Default select example" ng-model="bugStatus"
                 ng-options="status for status in statusOptions">
             </select><br>
-            <input type="submit" value="Add New">
+            <input class="btn btn-primary" type="submit" value="Add New">
         </form>
     </div>
     <div ng-show="showUpdateBug" class="mx-auto" style="width: 400px;">
@@ -51,8 +51,10 @@
             <label for="bugStatus">Status</label><br>
             <select class="form-select" ng-init="bugStatus" id="bugStatus" aria-label="Default select example"
                 ng-model="bugStatus" ng-options="status for status in statusOptions">
-            </select><br>
-            <input type="submit" value="Update">
+            </select><br><br>
+            <input class="btn btn-warning" type="submit" value="Update">
+            <button type="button" class="btn btn-primary" ng-init="currentBug = currentBug"
+                ng-click="showBugsFunction()">Back</button>
         </form>
     </div>
     <br>
@@ -77,7 +79,7 @@
             </tr>
         </table>
 
-        <p><button ng-click="removeMarked()">Remove marked</button></p>
+        <p><button class="btn btn-danger" ng-click="removeMarked()">Remove marked</button></p>
     </div>
     <div class="card" ng-show="showDetails">
         <div class="card-body">
@@ -129,14 +131,31 @@
                         $scope.bugList = response.data;
                         console.log($scope.bugList)
                     });
-                    $scope.bugTitle = "";
-                    $scope.bugDescription = "";
-                    $scope.bugStatus = "Todo";
-                    $scope.bugPriority = "Medium";
                 });
                 $scope.showBugsFunction();
             };
-
+            $scope.updateBug = function () {
+                let bugUpdateRequest = {
+                    method: 'PUT',
+                    url: "http://localhost:8080/bug/" + $scope.currentBug.id,
+                    headers: {
+                        'Content-Type': "application/json"
+                    },
+                    data: {
+                        id: $scope.currentBug.id,
+                        title: $scope.bugTitle,
+                        description: $scope.bugDescription,
+                        priority: $scope.bugPriority,
+                        status: $scope.bugStatus
+                    }
+                };
+                $http(bugUpdateRequest).then(() => {
+                    $http.get("http://localhost:8080/bug").then(function (response) {
+                        $scope.bugList = response.data;
+                        $scope.showBugsFunction();
+                    });
+                });
+            };
             $scope.deleteBug = function (id) {
                 console.log("http://localhost:8080/bug/" + id);
                 let bugDeleteRequest = {
@@ -176,21 +195,11 @@
                 });
                 $scope.showDetailsFunction();
             }
-            $scope.updateBug = function () {
-                $scope.bugList.forEach(bug => {
-                    if (bug.id === $scope.currentBug.id) {
-                        bug.title = $scope.bugTitle;
-                        bug.description = $scope.bugDescription;
-                        bug.priority = $scope.bugPriority;
-                        bug.status = $scope.bugStatus;
-                    }
-                });
+            $scope.resetForm = function () {
                 $scope.bugTitle = "";
                 $scope.bugDescription = "";
                 $scope.bugStatus = "Todo";
                 $scope.bugPriority = "Medium";
-
-                $scope.showBugsFunction();
             }
 
             $scope.showDetails = false;
@@ -214,12 +223,14 @@
                 $scope.showNewBug = false;
                 $scope.showBugs = true;
                 $scope.showUpdateBug = false;
+                $scope.currentBug = {};
             };
             $scope.showNewBugFunction = () => {
                 $scope.showDetails = false;
                 $scope.showNewBug = true;
                 $scope.showBugs = false;
                 $scope.showUpdateBug = false;
+                $scope.resetForm();
             };
             $scope.showDetailsFunction = () => {
                 $scope.showDetails = true;
