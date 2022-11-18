@@ -21,10 +21,10 @@ var app = angular.module('bugs', []);
                         done: false
                     }
                 }
-                $http(bugAddRequest).then(function () {
+                $http(bugAddRequest).then(function (response) {
+                    console.log(response.status);
                     $http.get("http://localhost:8080/bug").then(function (response) {
                         $scope.bugList = response.data;
-                        console.log($scope.bugList)
                     });
                 });
                 $scope.showBugsFunction();
